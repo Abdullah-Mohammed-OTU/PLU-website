@@ -1,0 +1,25 @@
+@layer base {
+  html { scroll-behavior: smooth; }
+}
+
+#mic-btn.listening {
+  background-color: #e11d48;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.5); }
+  50%      { box-shadow: 0 0 0 14px rgba(225, 29, 72, 0); }
+}
+
+.alt-chip {
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  background: #e2e8f0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #0f172a;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.alt-chip:hover { background: #cbd5e1; }

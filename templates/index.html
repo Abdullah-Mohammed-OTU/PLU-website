@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Walmart Canada — Produce PLU Voice Lookup</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}" />
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen">
+  <header class="bg-[#0071ce] text-white shadow-md">
+    <div class="max-w-4xl mx-auto px-6 py-5 flex items-center gap-4">
+      <div class="w-10 h-10 rounded-full bg-[#ffc220] flex items-center justify-center text-[#0071ce] font-black text-xl">W</div>
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">Produce PLU Voice Lookup</h1>
+        <p class="text-sm text-blue-100">Walmart Canada — {{ total_items }} items in database</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-6 py-8">
+    <section class="bg-white rounded-2xl shadow p-6 mb-6">
+      <h2 class="text-lg font-semibold mb-2">Say the name of a fruit or vegetable</h2>
+      <p class="text-sm text-slate-600 mb-5">Tap the microphone and say a produce name (e.g. "banana", "honeycrisp apples", "drumstick"). You can also type the name.</p>
+
+      <div class="flex flex-col sm:flex-row gap-3">
+        <button id="mic-btn" type="button"
+          class="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#0071ce] text-white font-semibold hover:bg-[#005bb0] active:scale-95 transition shadow">
+          <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M7 4a3 3 0 016 0v5a3 3 0 01-6 0V4z" />
+            <path d="M5.5 9.5a.75.75 0 011.5 0 3 3 0 006 0 .75.75 0 011.5 0 4.5 4.5 0 01-3.75 4.432V16h2a.75.75 0 010 1.5h-5.5a.75.75 0 010-1.5h2v-2.068A4.5 4.5 0 015.5 9.5z" />
+          </svg>
+          <span id="mic-label">Start listening</span>
+        </button>
+
+        <form id="text-form" class="flex-1 flex gap-2">
+          <input id="text-input" type="text" placeholder="Or type here…"
+            class="flex-1 px-4 py-3 rounded-xl border border-slate-300 focus:border-[#0071ce] focus:ring-2 focus:ring-[#0071ce]/30 outline-none" />
+          <button type="submit"
+            class="px-5 py-3 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition">Look up</button>
+        </form>
+      </div>
+
+      <p id="status" class="mt-4 text-sm text-slate-500 min-h-[1.25rem]"></p>
+    </section>
+
+    <section id="result-card" class="hidden bg-white rounded-2xl shadow p-6 mb-6">
+      <div class="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <p class="text-xs uppercase tracking-widest text-slate-500">You said</p>
+          <p id="heard" class="text-lg font-medium"></p>
+        </div>
+        <span id="unit-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-[#ffc220] text-slate-900"></span>
+      </div>
+
+      <div class="mt-5 grid sm:grid-cols-2 gap-6 items-center">
+        <div>
+          <p class="text-xs uppercase tracking-widest text-slate-500 mb-1">Produce</p>
+          <p id="produce-name" class="text-2xl font-bold"></p>
+          <p class="text-xs uppercase tracking-widest text-slate-500 mt-4 mb-1">PLU Code</p>
+          <p id="plu-code" class="text-5xl font-black text-[#0071ce] tracking-wider"></p>
+        </div>
+        <div class="bg-slate-50 rounded-xl p-4 flex flex-col items-center">
+          <p class="text-xs uppercase tracking-widest text-slate-500 mb-2">Scannable barcode</p>
+          <img id="barcode-img" alt="Barcode for PLU" class="max-w-full h-auto" />
+          <p class="text-[11px] text-slate-500 mt-2 text-center">Code 128 · compatible with Walmart Canada register scanners</p>
+        </div>
+      </div>
+
+      <div id="alternatives-wrap" class="mt-6 hidden">
+        <p class="text-xs uppercase tracking-widest text-slate-500 mb-2">Did you mean…</p>
+        <div id="alternatives" class="flex flex-wrap gap-2"></div>
+      </div>
+    </section>
+
+    <section id="no-match" class="hidden bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl p-5">
+      <p class="font-semibold">No match found.</p>
+      <p class="text-sm">Try a different name, a common synonym, or a more specific variety (e.g. "gala apples" instead of "apples").</p>
+    </section>
+
+    <footer class="mt-10 text-xs text-slate-500 text-center">
+      PLU data compiled from the Produce PLU Chart 2024 Q2 National. Walmart Canada scanners accept Code 128 barcodes for produce.
+    </footer>
+  </main>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

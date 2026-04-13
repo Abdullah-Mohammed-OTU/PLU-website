@@ -1,0 +1,13 @@
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/.DS_Store
+.git
+.gitignore
+.venv
+venv
+node_modules
+static/js/*.map
+*.log
+.env
+README.md
