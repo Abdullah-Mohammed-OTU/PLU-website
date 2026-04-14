@@ -19,7 +19,7 @@ interface SpeechRecognitionEventLike extends Event {
   };
 }
 
-type SpeechRecognitionCtor = new () => {
+type Recognition = {
   lang: string;
   interimResults: boolean;
   continuous: boolean;
@@ -30,7 +30,12 @@ type SpeechRecognitionCtor = new () => {
   onstart: () => void;
   start: () => void;
   stop: () => void;
+  abort: () => void;
 };
+
+type SpeechRecognitionCtor = new () => Recognition;
+
+type WakeLockSentinelLike = { release: () => Promise<void> };
 
 const qs = <T extends HTMLElement>(sel: string): T => {
   const el = document.querySelector(sel) as T | null;
@@ -55,27 +60,31 @@ const altList      = qs<HTMLDivElement>("#alternatives");
 
 const setStatus = (msg: string): void => { statusEl.textContent = msg; };
 
-async function lookup(query: string): Promise<void> {
+let currentMatch: PLUEntry | null = null;
+
+async function lookup(query: string): Promise<PLUEntry | null> {
   const trimmed = query.trim();
-  if (!trimmed) return;
+  if (!trimmed) return null;
   heard.textContent = trimmed;
   setStatus(`Looking up "${trimmed}"…`);
 
   try {
     const res = await fetch(`/api/lookup?q=${encodeURIComponent(trimmed)}`);
     const data = (await res.json()) as LookupResponse;
-    renderResult(data);
+    return renderResult(data);
   } catch (err) {
     setStatus(`Error: ${(err as Error).message}`);
+    return null;
   }
 }
 
-function renderResult(data: LookupResponse): void {
+function renderResult(data: LookupResponse): PLUEntry | null {
   if (!data.match) {
     resultCard.classList.add("hidden");
     noMatch.classList.remove("hidden");
     setStatus("No match found.");
-    return;
+    currentMatch = null;
+    return null;
   }
 
   noMatch.classList.add("hidden");
@@ -104,12 +113,59 @@ function renderResult(data: LookupResponse): void {
   }
 
   setStatus(`Match: ${m.name} — PLU ${m.plu}`);
+  currentMatch = m;
+  return m;
 }
 
-textForm.addEventListener("submit", (e: Event) => {
-  e.preventDefault();
-  lookup(textInput.value);
+function clearResult(): void {
+  resultCard.classList.add("hidden");
+  noMatch.classList.add("hidden");
+  currentMatch = null;
+  heard.textContent = "";
+}
+
+// ------------------ Speech synthesis ------------------
+
+function speak(text: string): Promise<void> {
+  return new Promise((resolve) => {
+    if (!("speechSynthesis" in window)) { resolve(); return; }
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "en-CA";
+      u.rate = 1.0;
+      u.onend = () => resolve();
+      u.onerror = () => resolve();
+      speechSynthesis.speak(u);
+      setTimeout(() => resolve(), 6000);
+    } catch { resolve(); }
+  });
+}
+
+function speakMatch(m: PLUEntry): Promise<void> {
+  const digits = m.plu.split("").join(" ");
+  const unit = m.unit === "KG" ? "sold by kilogram" : "sold by each";
+  return speak(`${m.name}. PLU ${digits}. ${unit}.`);
+}
+
+// ------------------ Wake Lock ------------------
+
+let wakeLock: WakeLockSentinelLike | null = null;
+
+async function acquireWakeLock(): Promise<void> {
+  const nav = navigator as unknown as { wakeLock?: { request: (t: string) => Promise<WakeLockSentinelLike> } };
+  if (!nav.wakeLock) return;
+  try { wakeLock = await nav.wakeLock.request("screen"); }
+  catch { /* ignore */ }
+}
+async function releaseWakeLock(): Promise<void> {
+  if (wakeLock) { try { await wakeLock.release(); } catch { /* ignore */ } wakeLock = null; }
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && handsFree) acquireWakeLock();
 });
+
+// ------------------ Hands-free recognition loop ------------------
 
 const w = window as unknown as {
   SpeechRecognition?: SpeechRecognitionCtor;
@@ -117,50 +173,143 @@ const w = window as unknown as {
 };
 const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
 
+let recognition: Recognition | null = null;
+let handsFree = false;    // true = user wants continuous listening
+let speaking = false;     // suppresses restart while TTS is talking
+let restartTimer: number | null = null;
+
+function setMicUI(state: "idle" | "listening" | "speaking" | "paused"): void {
+  micBtn.classList.toggle("listening", state === "listening");
+  micBtn.classList.toggle("speaking", state === "speaking");
+  micBtn.classList.toggle("paused", state === "paused");
+  switch (state) {
+    case "idle":      micLabel.textContent = "Start hands-free"; break;
+    case "listening": micLabel.textContent = "Listening… tap to stop"; break;
+    case "speaking":  micLabel.textContent = "Speaking…"; break;
+    case "paused":    micLabel.textContent = "Paused — tap to resume"; break;
+  }
+}
+
+function scheduleRestart(delay = 250): void {
+  if (restartTimer !== null) window.clearTimeout(restartTimer);
+  restartTimer = window.setTimeout(() => {
+    restartTimer = null;
+    if (handsFree && !speaking && recognition) {
+      try { recognition.start(); } catch { /* already started; ignore */ }
+    }
+  }, delay);
+}
+
+async function handleTranscript(transcript: string): Promise<void> {
+  textInput.value = transcript;
+  const t = transcript.toLowerCase().trim();
+
+  // Voice commands
+  if (/^(stop|stop listening|pause|quiet)\b/.test(t)) {
+    handsFree = false;
+    if (recognition) { try { recognition.abort(); } catch { /* */ } }
+    setMicUI("paused");
+    setStatus("Paused. Tap the button to resume.");
+    releaseWakeLock();
+    return;
+  }
+  if (/^(clear|reset)\b/.test(t)) {
+    clearResult();
+    setStatus("Cleared. Say a produce name.");
+    return;
+  }
+  if (/^(repeat|say again|again)\b/.test(t)) {
+    if (currentMatch) {
+      speaking = true;
+      setMicUI("speaking");
+      await speakMatch(currentMatch);
+      speaking = false;
+      if (handsFree) { setMicUI("listening"); scheduleRestart(); }
+    }
+    return;
+  }
+
+  const m = await lookup(transcript);
+  if (m) {
+    speaking = true;
+    setMicUI("speaking");
+    await speakMatch(m);
+    speaking = false;
+  } else {
+    speaking = true;
+    setMicUI("speaking");
+    await speak("No match. Try again.");
+    speaking = false;
+  }
+  if (handsFree) { setMicUI("listening"); scheduleRestart(); }
+}
+
+async function startHandsFree(): Promise<void> {
+  if (!SR) return;
+  if (!recognition) {
+    recognition = new SR();
+    recognition.lang = "en-CA";
+    recognition.interimResults = false;
+    recognition.continuous = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => { if (handsFree && !speaking) setMicUI("listening"); };
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      handleTranscript(transcript);
+    };
+    recognition.onerror = (event) => {
+      const err = event.error || "unknown";
+      if (err === "no-speech" || err === "aborted") {
+        scheduleRestart(300);
+        return;
+      }
+      setStatus(`Microphone error: ${err}.`);
+      handsFree = false;
+      setMicUI("idle");
+      releaseWakeLock();
+    };
+    recognition.onend = () => {
+      if (handsFree && !speaking) scheduleRestart(250);
+      else if (!handsFree) setMicUI("paused");
+    };
+  }
+
+  handsFree = true;
+  await acquireWakeLock();
+  await speak("Listening.");
+  setMicUI("listening");
+  setStatus("Listening…");
+  scheduleRestart(100);
+}
+
+function stopHandsFree(): void {
+  handsFree = false;
+  if (restartTimer !== null) { window.clearTimeout(restartTimer); restartTimer = null; }
+  if (recognition) { try { recognition.abort(); } catch { /* */ } }
+  if ("speechSynthesis" in window) speechSynthesis.cancel();
+  speaking = false;
+  setMicUI("idle");
+  setStatus("");
+  releaseWakeLock();
+}
+
+// ------------------ Wiring ------------------
+
+textForm.addEventListener("submit", (e: Event) => {
+  e.preventDefault();
+  lookup(textInput.value);
+});
+
 if (!SR) {
   micBtn.disabled = true;
   micBtn.classList.add("opacity-50", "cursor-not-allowed");
   micLabel.textContent = "Voice not supported";
-  setStatus("This browser does not support the Web Speech API. Try Chrome, Edge, or Safari on desktop.");
+  setStatus("This browser does not support the Web Speech API. Try Chrome, Edge, or Safari.");
 } else {
-  const recognition = new SR();
-  recognition.lang = "en-CA";
-  recognition.interimResults = false;
-  recognition.continuous = false;
-  recognition.maxAlternatives = 1;
-
-  let listening = false;
-
-  const stopUI = (): void => {
-    listening = false;
-    micBtn.classList.remove("listening");
-    micLabel.textContent = "Start listening";
-  };
-
-  recognition.onstart = () => {
-    listening = true;
-    micBtn.classList.add("listening");
-    micLabel.textContent = "Listening… speak now";
-    setStatus("Listening…");
-  };
-
-  recognition.onresult = (event) => {
-    const transcript = event.results[0][0].transcript;
-    textInput.value = transcript;
-    lookup(transcript);
-  };
-
-  recognition.onerror = (event) => {
-    const err = event.error || "unknown";
-    setStatus(`Microphone error: ${err}. Check browser permissions.`);
-    stopUI();
-  };
-
-  recognition.onend = () => { stopUI(); };
-
+  setMicUI("idle");
   micBtn.addEventListener("click", () => {
-    if (listening) { recognition.stop(); return; }
-    try { recognition.start(); }
-    catch (err) { setStatus(`Could not start: ${(err as Error).message}`); }
+    if (handsFree) { stopHandsFree(); return; }
+    startHandsFree();
   });
 }

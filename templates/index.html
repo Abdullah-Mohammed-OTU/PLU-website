@@ -20,8 +20,9 @@
 
   <main class="max-w-4xl mx-auto px-6 py-8">
     <section class="bg-white rounded-2xl shadow p-6 mb-6">
-      <h2 class="text-lg font-semibold mb-2">Say the name of a fruit or vegetable</h2>
-      <p class="text-sm text-slate-600 mb-5">Tap the microphone and say a produce name (e.g. "banana", "honeycrisp apples", "drumstick"). You can also type the name.</p>
+      <h2 class="text-lg font-semibold mb-2">Hands-free PLU lookup</h2>
+      <p class="text-sm text-slate-600 mb-2">Tap the microphone once to start. Say a produce name — the app will announce the PLU back to you and keep listening for the next item.</p>
+      <p class="text-xs text-slate-500 mb-5">Voice commands: <b>"clear"</b> (reset) · <b>"repeat"</b> (say it again) · <b>"stop"</b> (pause)</p>
 
       <div class="flex flex-col sm:flex-row gap-3">
         <button id="mic-btn" type="button"
@@ -30,7 +31,7 @@
             <path d="M7 4a3 3 0 016 0v5a3 3 0 01-6 0V4z" />
             <path d="M5.5 9.5a.75.75 0 011.5 0 3 3 0 006 0 .75.75 0 011.5 0 4.5 4.5 0 01-3.75 4.432V16h2a.75.75 0 010 1.5h-5.5a.75.75 0 010-1.5h2v-2.068A4.5 4.5 0 015.5 9.5z" />
           </svg>
-          <span id="mic-label">Start listening</span>
+          <span id="mic-label">Start hands-free</span>
         </button>
 
         <form id="text-form" class="flex-1 flex gap-2">
