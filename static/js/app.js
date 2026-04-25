@@ -135,6 +135,7 @@ const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
 let recognition = null;
 let handsFree = false; // true = user wants continuous listening
 let speaking = false; // suppresses restart while TTS is talking
+let processingTranscript = false;
 let restartTimer = null;
 function setMicUI(state) {
     micBtn.classList.toggle("listening", state === "listening");
@@ -169,56 +170,58 @@ function scheduleRestart(delay = 250) {
     }, delay);
 }
 async function handleTranscript(transcript) {
-    textInput.value = transcript;
-    const t = transcript.toLowerCase().trim();
-    // Voice commands
-    if (/^(stop|stop listening|pause|quiet)\b/.test(t)) {
-        handsFree = false;
-        if (recognition) {
-            try {
-                recognition.abort();
+    processingTranscript = true;
+    try {
+        textInput.value = transcript;
+        const t = transcript.toLowerCase().trim();
+        // Voice commands
+        if (/^(stop|stop listening|pause|quiet)\b/.test(t)) {
+            handsFree = false;
+            if (recognition) {
+                try {
+                    recognition.abort();
+                }
+                catch { /* */ }
             }
-            catch { /* */ }
+            setMicUI("paused");
+            setStatus("Paused. Tap the button to resume.");
+            releaseWakeLock();
+            return;
         }
-        setMicUI("paused");
-        setStatus("Paused. Tap the button to resume.");
-        releaseWakeLock();
-        return;
-    }
-    if (/^(clear|reset)\b/.test(t)) {
-        clearResult();
-        setStatus("Cleared. Say a produce name.");
-        return;
-    }
-    if (/^(repeat|say again|again)\b/.test(t)) {
-        if (currentMatch) {
+        if (/^(clear|reset)\b/.test(t)) {
+            clearResult();
+            setStatus("Cleared. Say a produce name.");
+            return;
+        }
+        if (/^(repeat|say again|again)\b/.test(t)) {
+            if (currentMatch) {
+                speaking = true;
+                setMicUI("speaking");
+                await speakMatch(currentMatch);
+                speaking = false;
+            }
+            return;
+        }
+        const m = await lookup(transcript);
+        if (m) {
             speaking = true;
             setMicUI("speaking");
-            await speakMatch(currentMatch);
+            await speakMatch(m);
             speaking = false;
-            if (handsFree) {
-                setMicUI("listening");
-                scheduleRestart();
-            }
         }
-        return;
+        else {
+            speaking = true;
+            setMicUI("speaking");
+            await speak("No match. Try again.");
+            speaking = false;
+        }
     }
-    const m = await lookup(transcript);
-    if (m) {
-        speaking = true;
-        setMicUI("speaking");
-        await speakMatch(m);
-        speaking = false;
-    }
-    else {
-        speaking = true;
-        setMicUI("speaking");
-        await speak("No match. Try again.");
-        speaking = false;
-    }
-    if (handsFree) {
-        setMicUI("listening");
-        scheduleRestart();
+    finally {
+        processingTranscript = false;
+        if (handsFree && !speaking) {
+            setMicUI("listening");
+            scheduleRestart();
+        }
     }
 }
 async function startHandsFree() {
@@ -248,7 +251,7 @@ async function startHandsFree() {
             releaseWakeLock();
         };
         recognition.onend = () => {
-            if (handsFree && !speaking)
+            if (handsFree && !speaking && !processingTranscript)
                 scheduleRestart(250);
             else if (!handsFree)
                 setMicUI("paused");

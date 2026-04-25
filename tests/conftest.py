@@ -42,8 +42,8 @@ class _ServerThread(threading.Thread):
 
 @pytest.fixture(scope="session")
 def live_server(app):
-    port = 5555
-    server = _ServerThread(app, port)
+    server = _ServerThread(app, 0)
+    port = server.server.server_port
     server.start()
     base_url = f"http://127.0.0.1:{port}"
 

@@ -31,7 +31,7 @@ class TestLookupAPI:
     def test_lookup_drumstick_handwritten(self, client):
         res = client.get("/api/lookup?q=drumstick")
         body = res.get_json()
-        assert body["match"]["plu"] == "7997"
+        assert body["match"]["plu"] == "7947"
 
     def test_lookup_echoes_query(self, client):
         res = client.get("/api/lookup?q=gala+apples")
@@ -97,4 +97,4 @@ class TestAllAPI:
         body = res.get_json()
         assert isinstance(body, list)
         assert any(e["plu"] == "4011" for e in body)
-        assert any(e["plu"] == "7997" for e in body)
+        assert any(e["plu"] == "7947" for e in body)

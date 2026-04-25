@@ -41,7 +41,7 @@ class TestTypedLookup:
     def test_drumstick_handwritten_entry(self, page: Page):
         page.locator("#text-input").fill("drumstick")
         page.locator("#text-form button[type=submit]").click()
-        expect(page.locator("#plu-code")).to_have_text("7997")
+        expect(page.locator("#plu-code")).to_have_text("7947")
 
     def test_barcode_image_loads(self, page: Page):
         page.locator("#text-input").fill("banana")

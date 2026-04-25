@@ -42,10 +42,10 @@ class TestFindMatches:
         assert results[0]["plu"] == "4011"
 
     def test_handwritten_drumstick_entry(self):
-        """The image has a handwritten note Drumstick -> 7997."""
+        """The 2025 Q4 chart lists Drumstick -> 7947."""
         results = find_matches("drumstick")
-        assert results[0]["plu"] == "7997"
-        assert results[0]["unit"] == "KG"
+        assert results[0]["plu"] == "7947"
+        assert results[0]["unit"] == "EA"
 
     @pytest.mark.parametrize(
         "query,expected_plu",
@@ -53,8 +53,8 @@ class TestFindMatches:
             ("honeycrisp apples", "3283"),
             ("gala", "4173"),
             ("red delicious", "4015"),
-            ("granny smith", "4135"),
-            ("red onion", "4663"),
+            ("granny smith", "4139"),
+            ("red onion", "4082"),
             ("yellow onions", "4093"),
             ("cilantro", "4889"),
             ("iceberg lettuce", "4061"),
@@ -62,8 +62,8 @@ class TestFindMatches:
             ("russet potatoes", "4072"),
             ("avocado", "4225"),
             ("roma tomatoes", "4087"),
-            ("ube", "4961"),
-            ("cassava", "4723"),
+            ("ube", "3474"),
+            ("cassava", "4819"),
         ],
     )
     def test_common_lookups(self, query, expected_plu):
