@@ -58,7 +58,3 @@ python3 -m pytest
 - `GET /api/lookup?q=<item>` returns the best match plus alternatives.
 - `GET /api/barcode/<plu>.png` returns a Code 128 barcode image.
 - `GET /api/all` returns the full PLU dataset.
-
-### License 
-
-This project is licensed under the PolyForm Noncommercial License 1.0.0 — see the LICENSE file for details.
