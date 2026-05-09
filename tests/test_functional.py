@@ -77,6 +77,11 @@ class TestBarcodeAPI:
         assert res.status_code == 200
         assert res.mimetype == "image/png"
 
+    def test_leading_zero_plu_works(self, client):
+        res = client.get("/api/barcode/0434.png")
+        assert res.status_code == 200
+        assert res.mimetype == "image/png"
+
     def test_non_numeric_plu_rejected(self, client):
         res = client.get("/api/barcode/abcd.png")
         assert res.status_code == 400

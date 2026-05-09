@@ -27,7 +27,7 @@ Hands-free produce PLU lookup for Walmart Canada. Say or type a produce item, ge
 
 ## Data
 
-`data/plu_data.json` is transcribed from the Dept. 94 Produce PLU Chart - 2025 Q4 (National). Each entry includes:
+`data/plu_data.json` is transcribed from the Dept. 94 Produce PLU Chart - 2026 Q2 (National). Each entry includes:
 
 - `plu`: numeric PLU or item code
 - `unit`: `KG` or `EA`

@@ -42,7 +42,7 @@ class TestFindMatches:
         assert results[0]["plu"] == "4011"
 
     def test_handwritten_drumstick_entry(self):
-        """The 2025 Q4 chart lists Drumstick -> 7947."""
+        """The 2026 Q2 chart lists Drumstick -> 7947."""
         results = find_matches("drumstick")
         assert results[0]["plu"] == "7947"
         assert results[0]["unit"] == "EA"
@@ -51,19 +51,29 @@ class TestFindMatches:
         "query,expected_plu",
         [
             ("honeycrisp apples", "3283"),
+            ("fuji", "4131"),
             ("gala", "4173"),
             ("red delicious", "4015"),
             ("granny smith", "4139"),
+            ("thai banana", "3361"),
+            ("banana flower", "4893"),
+            ("sunpunch apple", "3564"),
             ("red onion", "4082"),
             ("yellow onions", "4093"),
             ("cilantro", "4889"),
+            ("gai lan", "3160"),
             ("iceberg lettuce", "4061"),
             ("cucumber", "4062"),
             ("russet potatoes", "4072"),
+            ("pumpkin cut", "0434"),
             ("avocado", "4225"),
             ("roma tomatoes", "4087"),
+            ("methi", "8608"),
+            ("winter melon", "3456"),
             ("ube", "3474"),
+            ("white yam", "3276"),
             ("cassava", "4819"),
+            ("yellow turmeric", "0222"),
         ],
     )
     def test_common_lookups(self, query, expected_plu):
