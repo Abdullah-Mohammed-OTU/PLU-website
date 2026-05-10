@@ -10,6 +10,7 @@ const micLabel = qs("#mic-label");
 const statusEl = qs("#status");
 const textForm = qs("#text-form");
 const textInput = qs("#text-input");
+const clearInput = qs("#clear-input");
 const resultCard = qs("#result-card");
 const noMatch = qs("#no-match");
 const heard = qs("#heard");
@@ -21,6 +22,9 @@ const altWrap = qs("#alternatives-wrap");
 const altList = qs("#alternatives");
 const setStatus = (msg) => { statusEl.textContent = msg; };
 let currentMatch = null;
+function syncClearInput() {
+    clearInput.classList.toggle("hidden", textInput.value.length === 0);
+}
 async function lookup(query) {
     const trimmed = query.trim();
     if (!trimmed)
@@ -173,6 +177,7 @@ async function handleTranscript(transcript) {
     processingTranscript = true;
     try {
         textInput.value = transcript;
+        syncClearInput();
         const t = transcript.toLowerCase().trim();
         // Voice commands
         if (/^(stop|stop listening|pause|quiet)\b/.test(t)) {
@@ -189,6 +194,8 @@ async function handleTranscript(transcript) {
             return;
         }
         if (/^(clear|reset)\b/.test(t)) {
+            textInput.value = "";
+            syncClearInput();
             clearResult();
             setStatus("Cleared. Say a produce name.");
             return;
@@ -288,6 +295,15 @@ textForm.addEventListener("submit", (e) => {
     e.preventDefault();
     lookup(textInput.value);
 });
+textInput.addEventListener("input", syncClearInput);
+clearInput.addEventListener("click", () => {
+    textInput.value = "";
+    syncClearInput();
+    clearResult();
+    setStatus("");
+    textInput.focus();
+});
+syncClearInput();
 if (!SR) {
     micBtn.disabled = true;
     micBtn.classList.add("opacity-50", "cursor-not-allowed");

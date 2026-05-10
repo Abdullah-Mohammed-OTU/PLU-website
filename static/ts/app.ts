@@ -48,6 +48,7 @@ const micLabel     = qs<HTMLSpanElement>("#mic-label");
 const statusEl     = qs<HTMLParagraphElement>("#status");
 const textForm     = qs<HTMLFormElement>("#text-form");
 const textInput    = qs<HTMLInputElement>("#text-input");
+const clearInput   = qs<HTMLButtonElement>("#clear-input");
 const resultCard   = qs<HTMLElement>("#result-card");
 const noMatch      = qs<HTMLElement>("#no-match");
 const heard        = qs<HTMLParagraphElement>("#heard");
@@ -61,6 +62,10 @@ const altList      = qs<HTMLDivElement>("#alternatives");
 const setStatus = (msg: string): void => { statusEl.textContent = msg; };
 
 let currentMatch: PLUEntry | null = null;
+
+function syncClearInput(): void {
+  clearInput.classList.toggle("hidden", textInput.value.length === 0);
+}
 
 async function lookup(query: string): Promise<PLUEntry | null> {
   const trimmed = query.trim();
@@ -205,6 +210,7 @@ async function handleTranscript(transcript: string): Promise<void> {
   processingTranscript = true;
   try {
     textInput.value = transcript;
+    syncClearInput();
     const t = transcript.toLowerCase().trim();
 
     // Voice commands
@@ -217,6 +223,8 @@ async function handleTranscript(transcript: string): Promise<void> {
       return;
     }
     if (/^(clear|reset)\b/.test(t)) {
+      textInput.value = "";
+      syncClearInput();
       clearResult();
       setStatus("Cleared. Say a produce name.");
       return;
@@ -305,6 +313,17 @@ textForm.addEventListener("submit", (e: Event) => {
   e.preventDefault();
   lookup(textInput.value);
 });
+
+textInput.addEventListener("input", syncClearInput);
+
+clearInput.addEventListener("click", () => {
+  textInput.value = "";
+  syncClearInput();
+  clearResult();
+  setStatus("");
+  textInput.focus();
+});
+syncClearInput();
 
 if (!SR) {
   micBtn.disabled = true;

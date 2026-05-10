@@ -27,6 +27,9 @@ class TestPageStructure:
     def test_result_card_hidden_initially(self, page: Page):
         expect(page.locator("#result-card")).to_be_hidden()
 
+    def test_clear_input_button_hidden_initially(self, page: Page):
+        expect(page.locator("#clear-input")).to_be_hidden()
+
 
 class TestTypedLookup:
     def test_banana_lookup_shows_plu(self, page: Page):
@@ -69,3 +72,17 @@ class TestTypedLookup:
         first.click()
         expect(page.locator("#result-card")).to_be_visible()
         assert "(" in chip_text  # chip displays "Name (plu)"
+
+    def test_clear_input_button_clears_text_and_result(self, page: Page):
+        text_input = page.locator("#text-input")
+        clear_input = page.locator("#clear-input")
+
+        text_input.fill("banana")
+        expect(clear_input).to_be_visible()
+        page.locator("#text-form button[type=submit]").click()
+        expect(page.locator("#result-card")).to_be_visible()
+
+        clear_input.click()
+        expect(text_input).to_have_value("")
+        expect(clear_input).to_be_hidden()
+        expect(page.locator("#result-card")).to_be_hidden()
